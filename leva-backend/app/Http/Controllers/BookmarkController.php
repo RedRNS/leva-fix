@@ -93,9 +93,9 @@ class BookmarkController extends Controller
 
                 $builder->where(function ($nested) use ($term) {
                     $nested
-                        ->where('note', 'like', "%{$term}%")
-                        ->orWhere('semantic_keywords', 'like', "%{$term}%")
-                        ->orWhereHas('tool', fn ($toolQuery) => $toolQuery->where('name', 'like', "%{$term}%"));
+                        ->whereLike('note', "%{$term}%")
+                        ->orWhereLike('semantic_keywords', "%{$term}%")
+                        ->orWhereHas('tool', fn ($toolQuery) => $toolQuery->whereLike('name', "%{$term}%"));
                 });
             });
 

@@ -7,6 +7,7 @@ use App\Services\OpenAIService;
 use App\Services\QdrantService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
 class ToolController extends Controller
@@ -124,16 +125,18 @@ class ToolController extends Controller
                 ->filter()
                 ->values();
         } else {
+            $like = DB::connection()->getDriverName() === 'pgsql' ? 'ILIKE' : 'LIKE';
+
             $results = ScrapedTool::query()
                 ->where(function ($builder) use ($query) {
                     $builder
-                        ->where('name', 'like', "%{$query}%")
-                        ->orWhere('description', 'like', "%{$query}%");
+                        ->whereLike('name', "%{$query}%")
+                        ->orWhereLike('description', "%{$query}%");
                 })
                 ->orderByRaw(
                     "CASE
-                        WHEN name LIKE ? THEN 0
-                        WHEN description LIKE ? THEN 1
+                        WHEN name {$like} ? THEN 0
+                        WHEN description {$like} ? THEN 1
                         ELSE 2
                     END",
                     ["%{$query}%", "%{$query}%"]

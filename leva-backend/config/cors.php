@@ -8,6 +8,9 @@ return [
         'http://127.0.0.1:5173',
         'http://localhost:8000',
         'http://127.0.0.1:8000',
+        'https://leva.my.id',
+        'https://www.leva.my.id',
+        'https://leva-fix.vercel.app',
         env('FRONTEND_URL', 'http://localhost:5173'),
     ],
     'allowed_origins_patterns' => [

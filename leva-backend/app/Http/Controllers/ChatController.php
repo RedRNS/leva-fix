@@ -45,9 +45,9 @@ class ChatController extends Controller
             $query = ScrapedTool::query();
             foreach ($keywords as $word) {
                 if (strlen($word) > 3) {
-                    $query->orWhere('description', 'like', "%{$word}%")
-                          ->orWhere('name', 'like', "%{$word}%")
-                          ->orWhere('category', 'like', "%{$word}%");
+                    $query->orWhereLike('description', "%{$word}%")
+                          ->orWhereLike('name', "%{$word}%")
+                          ->orWhereLike('category', "%{$word}%");
                 }
             }
             $tools = $query->limit(5)->get();

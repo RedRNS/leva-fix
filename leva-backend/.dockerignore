@@ -1,0 +1,14 @@
+.env
+.env.*
+!.env.example
+vendor
+node_modules
+leva
+*.sqlite
+storage/logs/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+test_*.php
+list_models.php
+reset_qdrant.php
