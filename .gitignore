@@ -1,0 +1,15 @@
+node_modules
+.env
+.env.*
+!.env.example
+dist/
+build/
+.DS_Store
+
+# Dev-only files (jangan di-commit)
+leva-backend/leva
+leva-backend/*.sqlite
+leva-backend/test_*.php
+leva-backend/list_models.php
+leva-backend/reset_qdrant.php
+.claude/settings.local.json
