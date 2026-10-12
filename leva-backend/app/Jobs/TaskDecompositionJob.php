@@ -38,14 +38,14 @@ class TaskDecompositionJob implements ShouldQueue
         }
 
         try {
-            $text = $this->resolveSourceText($task, $pdfTextExtractor);
+            [$text, $images] = $this->resolveSource($task, $pdfTextExtractor);
             $preparedText = Str::limit(trim($text), 8000, '');
 
             $result = $openAIService->decomposeTask($preparedText, [
                 'major' => $task->user?->profile?->major,
                 'semester' => $task->user?->profile?->semester,
                 'language_preference' => $task->user?->profile?->language_preference,
-            ]);
+            ], $images);
 
             DB::transaction(function () use ($task, $result, $qdrantService) {
                 $task->subTasks()->delete();
@@ -108,13 +108,16 @@ class TaskDecompositionJob implements ShouldQueue
         }
     }
 
-    private function resolveSourceText(TaskMaster $task, PdfTextExtractor $pdfTextExtractor): string
+    /**
+     * @return array{0: string, 1: list<string>} teks sumber dan (jika perlu) gambar halaman PDF
+     */
+    private function resolveSource(TaskMaster $task, PdfTextExtractor $pdfTextExtractor): array
     {
         if ($task->source_type === 'text') {
-            return trim(implode("\n\n", array_filter([
+            return [trim(implode("\n\n", array_filter([
                 $task->source_text,
                 $task->source_description,
-            ])));
+            ]))), []];
         }
 
         if (!$task->source_file_path) {
@@ -123,11 +126,22 @@ class TaskDecompositionJob implements ShouldQueue
 
         $path = Storage::disk('local')->path($task->source_file_path);
         $pdfText = $pdfTextExtractor->extract($path);
+        $images = [];
 
-        return trim(implode("\n\n", array_filter([
+        // PDF scan atau PDF dengan rumus berupa gambar tidak punya teks yang bisa dibaca,
+        // jadi halamannya dikirim sebagai gambar agar tidak ditebak-tebak oleh AI.
+        if (!$pdfTextExtractor->isUsable($pdfText)) {
+            $images = $pdfTextExtractor->renderPages($path);
+
+            if ($images === [] && trim($pdfText) === '') {
+                throw new \RuntimeException('Isi PDF tidak bisa dibaca. Coba upload PDF lain atau tempel teksnya langsung.');
+            }
+        }
+
+        return [trim(implode("\n\n", array_filter([
             $task->source_description,
             $pdfText,
-        ])));
+        ]))), $images];
     }
 
     private function cleanupSourceFile(TaskMaster $task): void

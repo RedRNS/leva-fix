@@ -23,7 +23,7 @@ class OpenAIService
             'HTTP-Referer' => config('app.url'),
             'X-Title' => 'Leva',
         ])
-        ->timeout(45)
+        ->timeout(90)
         ->post($baseUrl . '/chat/completions', $payload);
 
         if (!$response->successful()) {
@@ -62,9 +62,21 @@ class OpenAIService
         return [];
     }
 
-    public function decomposeTask(string $text, array $userProfile): array
+    public function decomposeTask(string $text, array $userProfile, array $images = []): array
     {
         $systemPrompt = $this->buildSystemPrompt($userProfile);
+
+        if ($images !== []) {
+            $systemPrompt .= "\n\nDokumen tugas dilampirkan sebagai gambar halaman. Baca seluruh isinya (termasuk soal dan rumus matematika) dan buat langkah-langkah yang spesifik terhadap isi dokumen tersebut. Jangan mengarang topik yang tidak ada di dokumen.";
+        }
+
+        $userContent = $text;
+        if ($images !== []) {
+            $userContent = [['type' => 'text', 'text' => $text !== '' ? $text : 'Tugas ada pada gambar terlampir.']];
+            foreach ($images as $image) {
+                $userContent[] = ['type' => 'image_url', 'image_url' => ['url' => $image]];
+            }
+        }
         // Instruct it to return JSON format string
         $systemPrompt .= "\n\nYou MUST return only raw JSON format without markdown. Use the exact schema required.";
 
@@ -72,7 +84,7 @@ class OpenAIService
             'model' => config('services.openai.chat_model', 'nex-agi/nex-n2-pro:free'),
             'messages' => [
                 ['role' => 'system', 'content' => $systemPrompt],
-                ['role' => 'user', 'content' => $text]
+                ['role' => 'user', 'content' => $userContent]
             ],
             'response_format' => ['type' => 'json_object'],
             'temperature' => 0.4,
